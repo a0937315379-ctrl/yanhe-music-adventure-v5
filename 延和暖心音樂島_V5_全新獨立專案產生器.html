@@ -1,0 +1,68 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>延和暖心音樂島 V5｜全新專案產生器</title><style>body{font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif;color:#183859;background:linear-gradient(135deg,#e4f5ff,#fff2db);margin:0;padding:22px}main{max-width:680px;margin:24px auto;background:#fff;border-radius:24px;padding:28px;box-shadow:0 13px 35px #173e6c20}h1{font-size:26px;margin:0 0 8px}.kicker{color:#38739b;font-weight:750;font-size:13px}p,li{line-height:1.8}button{width:100%;border:0;border-radius:12px;padding:16px;background:#175fa9;color:white;font-size:18px;font-weight:850;cursor:pointer}button:disabled{opacity:.6}pre{background:#edf6ff;padding:15px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;min-height:70px}.note{background:#fff6dd;border-radius:12px;padding:13px}.pill{display:inline-block;padding:5px 11px;border-radius:20px;background:#e5f5e8;font-size:13px;font-weight:700}</style></head><body><main><div class="kicker">延和國中｜聲音的魔法</div><h1>🏝️ V5 全新獨立專案產生器</h1><p><span class="pill">原本V4完整保留</span> <span class="pill">8組選單保留</span></p><p>按一次就會取得<strong>可上傳到新 GitHub 儲存庫的完整ZIP</strong>（六個網站檔案＋使用說明）。不會修改原專案，也不會自動更動 Firebase。</p><button id="go">下載 V5 全新專案 ZIP</button><pre id="status">尚未開始。這個工具需要連上公開 GitHub 讀取目前的原版網站。</pre><h3>拿到ZIP後</h3><ol><li>在GitHub另外建立 <code>yanhe-music-adventure-v5</code>。</li><li>解壓縮剛產生的 ZIP，將六個網站檔案全部上傳到<strong>新專案</strong>。</li><li>開啟新專案的 Settings → Pages，啟用 <code>main / (root)</code>。</li><li>使用新的測試課堂代碼、測試4人與5人組。Firebase規則若未允許第5把鑰匙，需要另行調整。</li></ol><p class="note"><strong>提醒：</strong>新版沿用原本 Firebase 連線資料，但不會自動修改 Firebase Rules。請勿直接在舊正式課堂代碼111-1測試。V5的課堂代碼請另外建立。</p></main><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script>
+const status=document.getElementById('status');function say(s){status.textContent=s}function replace(s,a,b,n=1){const parts=s.split(a);if(parts.length!==n+1)throw Error('找不到預期的原始程式片段（出現 '+(parts.length-1)+' 次）：'+a.slice(0,95));return parts.join(b)}function swap(s,a,b){const out=s.replace(a,b);if(out===s)throw Error('無法比對原始版本：'+String(a).slice(0,95));return out}
+function patchIndex(s){
+ s=replace(s,"const roles=[['tone','🎹 音色鑰匙'],['tempo','⏱️ 速度鑰匙'],['feeling','💗 情緒鑰匙'],['director','🎬 廣告鑰匙']];", "const allRoles=[['tone','🎹 音色鑰匙'],['tempo','⏱️ 速度鑰匙'],['feeling','💗 情緒鑰匙'],['director','🎬 廣告鑰匙'],['advisor','⭐ 配樂總監鑰匙']];const fivePerson=(window.yanheFivePersonGroups||[]).includes(String($('group').value));const roles=fivePerson?allRoles:allRoles.slice(0,4);const required=roles.length;");
+ s=replace(s,"layout('🏰 第三島｜四把音樂鑰匙',`第 ${$('group').value} 組｜四位組員各自蒐集一把鑰匙、面對面討論，由「廣告導演」提交共同配樂。`,", "layout('🏰 第三島｜音樂鑰匙合作任務',`第 ${$('group').value} 組｜本組 ${required} 位成員各自蒐集一把鑰匙、面對面討論，由「廣告導演」提交共同配樂。`,");
+ s=replace(s,'小組城堡進度：${count}／4 把鑰匙','小組城堡進度：${count}／${required} 把鑰匙');
+ s=replace(s,'<h3>🤝 四人合作：一起決定最後的BGM</h3>','<h3>🤝 全組合作：一起決定最後的BGM</h3>');
+ s=replace(s,'${count===4?`<div class="proposal">✨ 四把鑰匙已蒐集！','${count===required?`<div class="proposal">✨ ${required}把鑰匙已蒐集！');
+ s=replace(s,'${isDirector&&!submitted&&count===4?', '${isDirector&&!submitted&&count===required?');
+ s=replace(s,'Object.keys(e.detail.keys||{}).length===4','Object.keys(e.detail.keys||{}).length===((window.yanheFivePersonGroups||[]).includes(String($(\'group\').value))?5:4)');
+ s=replace(s,"window.addEventListener('yanhe:castle-feedback'", "window.addEventListener('yanhe:group-config',e=>{window.yanheFivePersonGroups=Array.isArray(e.detail)?e.detail.map(String):[];if(st.level===2&&!$('panel').classList.contains('hidden'))castle()});window.addEventListener('yanhe:castle-feedback'");
+ s=replace(s,"if(id==='group'){st.groupUnlocked=false;", "if(id==='group'){st.role='';st.castleKeySent=false;st.groupUnlocked=false;");
+ return s;
+}
+function patchSync(s){
+ s=replace(s,"let last=null,uid=null,db=null,api=null,chain=Promise.resolve(),stopKeys=null;", "let last=null,uid=null,db=null,api=null,chain=Promise.resolve(),stopKeys=null,stopConfig=null;let fiveGroups=[];const requiredFor=g=>fiveGroups.includes(String(g))?5:4;");
+ s=replace(s,"sync(last||current());subscribeKeys();", "sync(last||current());subscribeConfig();subscribeKeys();");
+ const start=s.indexOf('function subscribeKeys()');const end=s.indexOf("window.addEventListener('yanhe:group-change'",start);if(start<0||end<start)throw Error('找不到小組鑰匙監控程式');
+ s=s.slice(0,start)+`function subscribeConfig(){if(!db||!api)return;if(stopConfig)stopConfig();stopConfig=api.onValue(api.ref(db,\`adventureSessions/\${lesson}/meta/fivePersonGroups\`),snap=>{const x=snap.val();fiveGroups=Array.isArray(x)?x.map(String):[];window.yanheFivePersonGroups=fiveGroups;window.dispatchEvent(new CustomEvent('yanhe:group-config',{detail:fiveGroups}));subscribeKeys();},err=>status('🔴 五人組設定讀取失敗：'+err.code));}
+function subscribeKeys(){if(!db||!uid||!api)return;if(stopKeys)stopKeys();const group=document.getElementById('group')?.value||'1';const roles=requiredFor(group)===5?['tone','tempo','feeling','director','advisor']:['tone','tempo','feeling','director'];stopKeys=api.onValue(api.ref(db,\`adventureSessions/\${lesson}/groupKeys/\${group}\`),snapshot=>{const obj=snapshot.val()||{};const keys={};for(const role of roles)if(obj[role])keys[role]=obj[role];const ids=Object.values(keys).map(k=>k.uid);const valid=ids.length===roles.length&&new Set(ids).size===roles.length;window.dispatchEvent(new CustomEvent('yanhe:castle-update',{detail:{keys,final:valid?obj.final||null:null}}));},err=>status('🔴 小組鑰匙讀取失敗：'+err.code));}
+`+s.slice(end);
+ s=replace(s,"const validRoles=['tone','tempo','feeling','director'];", "const validRoles=requiredFor(group)===5?['tone','tempo','feeling','director','advisor']:['tone','tempo','feeling','director'];");
+ return s;
+}
+function patchTeacherHtml(s){const anchor='<section class="section"><h2>🏰 小組配樂提案</h2>';if(!s.includes(anchor))throw Error('找不到教師端配樂提案區塊');return replace(s,anchor,`<section class="section"><h2>⭐ 五人組與配樂總監鑰匙設定</h2><p class="muted mini">先選擇本堂課，再勾選需要第五把「配樂總監鑰匙」的組別。未勾選的組別仍維持4把鑰匙；建議上課前設定完成。</p><div id="fiveGroupSettings" style="display:flex;gap:10px;flex-wrap:wrap">${Array.from({length:8},(_,i)=>`<label style="padding:10px;background:#edf5ff;border-radius:8px"><input type="checkbox" class="five-group" value="${i+1}"> 第${i+1}組5人</label>`).join('')}</div><button class="btn" id="saveFiveGroups" type="button" style="margin-top:12px">儲存五人組設定</button><p id="fiveMsg" class="mini muted"></p></section>`+anchor);
+}
+function patchTeacher(s){
+ s=replace(s,"const roles={tone:'音色偵探',tempo:'速度偵探',feeling:'情緒偵探',director:'廣告導演'};", "const roles={tone:'音色偵探',tempo:'速度偵探',feeling:'情緒偵探',director:'廣告導演',advisor:'配樂總監'};");
+ s=replace(s,"const isTeacher=u=>u&&u.uid===TEACHER_UID;", "const isTeacher=u=>u&&u.uid===TEACHER_UID;\n  $('saveFiveGroups').onclick=async()=>{if(!selected){say('請先選擇課堂');return}const list=[...document.querySelectorAll('.five-group:checked')].map(e=>e.value);if(!confirm('確定更新'+selected+'的五人組設定？最好在學生進入第三島前完成。'))return;try{const res=await runTransaction(ref(db,`adventureSessions/${selected}/meta/fivePersonGroups`),()=>list,{applyLocally:false});if(!res.committed)throw Error('寫入未成功');meta[selected]=meta[selected]||{};meta[selected].fivePersonGroups=list;refreshFiveGroups();say('✅ 已儲存五人組設定：'+(list.join('、')||'無'));}catch(e){say('🔴 設定失敗：'+(e.code||e.message)+'。可能需要更新Firebase資料庫規則。')}};\n  function refreshFiveGroups(){const active=(meta[selected]?.fivePersonGroups||[]).map(String);document.querySelectorAll('.five-group').forEach(e=>e.checked=active.includes(e.value));$('fiveMsg').textContent=selected?'目前五人組：'+(active.map(i=>'第'+i+'組').join('、')||'無'):'請先選擇課堂'}");
+ s=replace(s,"selected=code;records={};groupKeys={};render();", "selected=code;records={};groupKeys={};refreshFiveGroups();render();");
+ s=replace(s,"if(prev&&!meta[prev])selectLesson('');", "if(prev&&!meta[prev])selectLesson('');else if(selected)refreshFiveGroups();");
+ s=replace(s,"['tone','tempo','feeling','director'];if(!rs.some", "['tone','tempo','feeling','director','advisor'];if(!rs.some");
+ s=replace(s,"['tone','tempo','feeling','director'].filter(r=>d[r]);const unique=new Set(rolesHere.map(r=>d[r].uid)).size===4;return `<tr><td>第${i+1}組</td><td>${rolesHere.length}/4</td>", "((meta[selected]?.fivePersonGroups||[]).map(String).includes(String(i+1))?['tone','tempo','feeling','director','advisor']:['tone','tempo','feeling','director']).filter(r=>d[r]);const required=(meta[selected]?.fivePersonGroups||[]).map(String).includes(String(i+1))?5:4;const unique=rolesHere.length===required&&new Set(rolesHere.map(r=>d[r].uid)).size===required;return `<tr><td>第${i+1}組</td><td>${rolesHere.length}/${required}</td>");
+ s=replace(s,'四把不同角色的鑰匙由四個不同登入帳號提交；廣告導演統整小組BGM。','由教師指定四人組或五人組；每把鑰匙均由不同學生提交，廣告導演統整小組BGM。');
+ return s;
+}
+const files={'index.html':patchIndex,'student-sync.js':patchSync,'teacher.html':patchTeacherHtml,'teacher.js':patchTeacher};
+document.getElementById('go').onclick=async()=>{
+ const button=document.getElementById('go');button.disabled=true;
+ try{
+  if(!window.JSZip)throw Error('ZIP元件未載入。請確認網路連線，改用Chrome或Safari重新開啟。');
+  say('正在從公開 GitHub 讀取六個原版檔案…');
+  const names=['index.html','student-sync.js','teacher.html','teacher.js','firebase-config.js','README.md'];
+  const inputs={};
+  for(const name of names){
+   const url='https://raw.githubusercontent.com/a0937315379-ctrl/yanhe-music-adventure/main/'+name+'?v='+Date.now();
+   const response=await fetch(url,{cache:'no-store'});
+   if(!response.ok)throw Error('讀取原版 '+name+' 失敗（HTTP '+response.status+'）。請確認原專案公開且檔案存在。');
+   inputs[name]=await response.text();
+   say('已讀取 '+name);
+  }
+  const zip=new JSZip();
+  for(const name of ['index.html','student-sync.js','teacher.html','teacher.js']){
+   let result=files[name](inputs[name]);
+   // 舊版與新版使用不同本機紀錄，避免同一台iPad跨專案誤載入闖關狀態。
+   result=result.replaceAll('yanhe-adventure-v4-','yanhe-adventure-v5-');
+   zip.file(name,result);
+   say('✅ 已建立 '+name);
+  }
+  zip.file('firebase-config.js',inputs['firebase-config.js']);
+  zip.file('README.md',`# 延和暖心音樂島 V5｜獨立專案\n\n以既有 V4 為基礎產生的獨立版本；原始 GitHub 專案不受影響。\n\n## 重要\n- 保留第1～8組自由選組。\n- 老師在 teacher.html 選擇課堂，設定某組為五人組後，該組增加 ⭐ 配樂總監鑰匙。\n- 4人組蒐集4把；5人組蒐集5把，廣告導演提交最終提案。\n- 原本的投票、第二關與第四關保留。\n- 沿用原 Firebase 專案，但務必建立新的測試課堂代碼（勿使用舊正式代碼），以避免資料混用。\n- Firebase Realtime Database Rules 可能需要增加 advisor 角色和 fivePersonGroups 設定的讀寫權限。未確認前不能視為已完全連線。\n- 不包含原音樂情緒LIVE投票專案原始碼；第一關原有連結會照舊指向原本的投票網頁。\n\n## 部署\n1. GitHub 建立一個全新 Public 儲存庫，例如 yanhe-music-adventure-v5。\n2. 將ZIP內六個網站檔案上傳到新儲存庫根目錄。\n3. Settings → Pages → Source: Deploy from a branch → main → /(root) → Save。\n4. 開啟新版的 /teacher.html，新增測試課堂並選擇5人組；以5台學生平板驗證。\n5. 舊儲存庫 yanhe-music-adventure 完全不修改。\n`);
+  zip.file('部署與測試說明.txt',`【延和暖心音樂島 V5】\n\n一、建立全新儲存庫：yanhe-music-adventure-v5\n二、將ZIP中的 index.html、student-sync.js、teacher.html、teacher.js、firebase-config.js、README.md 上傳新專案根目錄。\n三、在新儲存庫 Settings > Pages 啟用 main / (root)。\n四、新學生網址：https://a0937315379-ctrl.github.io/yanhe-music-adventure-v5/\n五、新教師網址：https://a0937315379-ctrl.github.io/yanhe-music-adventure-v5/teacher.html\n上述網址需部署完成才存在。\n六、教師登入後新建測試課堂如 YH-V5-TEST，不使用 111-1 舊代碼。\n七、勾選第4組五人組，儲存。以5個不同身分各選一把角色鑰匙，再測最終提交與離場券。\n八、確認原有4人組仍只有4把，教師端8組全在。\n九、若寫入權限拒絕（permission_denied），須檢查並合併 Firebase RTDB Rules。切勿整份覆蓋舊規則。\n\n原始網站完全不會被此工具修改，只有你自己新建並上傳的新倉庫才會上線。\n`);
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='延和暖心音樂島_V5_全新獨立專案.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),120000);
+  say('✅ 完成！已下載六個完整網站檔案與部署說明。接下來只上傳到「全新 GitHub 專案」，原網站完全不用動。');
+ }catch(e){say('❌ 未完成：'+e.message+'\n沒有修改原有GitHub。請將畫面截圖提供給我。');}
+ finally{button.disabled=false}
+};</script></body></html>
